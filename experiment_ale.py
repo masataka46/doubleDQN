@@ -5,6 +5,7 @@ Simple RL glue experiment setup
 
 import numpy as np
 import rlglue.RLGlue as RLGlue
+import csv
 
 max_learningEpisode = 50000
 
@@ -26,6 +27,14 @@ def runEpisode(is_learning_episode):
         print "Episode " + str(learningEpisode) + "\t " + str(totalSteps) + " steps \t" + str(totalReward) + " total reward\t "
     else:
         print "Evaluation ::\t " + str(totalSteps) + " steps \t" + str(totalReward) + " total reward\t "
+
+# write reward in csv file
+        list_csv = [str(learningEpisode), str(totalReward)]
+        f_csv = open('reward.csv', 'a')
+        writer_r = csv.writer(f_csv, lineterminator = '\n')
+        writer_r.writerow(list_csv)
+        f_csv.close()
+
 
 
 # Main Program starts here
