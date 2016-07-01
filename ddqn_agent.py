@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 import scipy.misc as spm
 
-from chainer import cuda, FunctionSet, Variable, optimizers, selializers
+from chainer import cuda, FunctionSet, Variable, optimizers, serializers
 import chainer.functions as F
 
 from rlglue.agent.Agent import Agent
