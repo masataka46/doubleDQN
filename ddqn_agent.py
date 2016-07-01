@@ -6,18 +6,23 @@ modified to double DQN by Takamitsu Omasa
 """
 
 import copy
+import argparse
 
 import pickle
 import numpy as np
 import scipy.misc as spm
 
-from chainer import cuda, FunctionSet, Variable, optimizers
+from chainer import cuda, FunctionSet, Variable, optimizers, selializers
 import chainer.functions as F
 
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 
+parser = argparse.ArgumentParser(description='DDQN')
+parser.add_argument('--resumemodel', '-r', default='',
+                    help='Flag of resuming model')
+args = parser.parse_args()
 
 class DDQN_class:
     # Hyper-Parameters
@@ -46,6 +51,13 @@ class DDQN_class:
                              initialW=np.zeros((self.num_of_actions, 512),
                                                dtype=np.float32))
         ).to_gpu()
+        
+        if args.resumemodel:
+            # load saved model
+            serializers.load_npz('resume.model', self.model)
+            #self.model = self.model_tmp.to_gpu()
+            print "load model from resume.model"
+        
 
         self.model_target = copy.deepcopy(self.model)
 
@@ -303,8 +315,7 @@ class ddqn_agent(Agent):  # RL-glue Process
             return "message understood, policy unfrozen"
 
         if inMessage.startswith("save model"):
-            with open('ddqn_model.dat', 'w') as f:
-                pickle.dump(self.DDQN.model, f)
+            serializers.save_npz('resume.model', self.DDQN.model) # save current model
             return "message understood, model saved"
 
 if __name__ == "__main__":
