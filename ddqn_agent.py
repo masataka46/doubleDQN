@@ -20,8 +20,9 @@ from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 
 parser = argparse.ArgumentParser(description='DDQN')
-parser.add_argument('--resumemodel', '-r', default='',
-                    help='Flag of resuming model')
+parser.add_argument('--resumemodel', '-r', default=None, help='file name of resuming model')
+parser.add_argument('--resumeD1', '-f', default=None, help='file name of resuming Ddata 1')
+parser.add_argument('--resumeD2', '-s', default=None, help='file name of resuming Ddata 2')
 args = parser.parse_args()
 
 class DDQN_class:
@@ -54,11 +55,9 @@ class DDQN_class:
         
         if args.resumemodel:
             # load saved model
-            serializers.load_npz('resume.model', self.model)
-            #self.model = self.model_tmp.to_gpu()
+            serializers.load_npz(args.resumemodel, self.model)
             print "load model from resume.model"
         
-
         self.model_target = copy.deepcopy(self.model)
 
         print "Initizlizing Optimizer"
@@ -66,12 +65,25 @@ class DDQN_class:
         self.optimizer.setup(self.model.collect_parameters())
 
         # History Data :  D=[s, a, r, s_dash, end_episode_flag]
-        self.D = [np.zeros((self.data_size, 4, 84, 84), dtype=np.uint8),
-                  np.zeros(self.data_size, dtype=np.uint8),
-                  np.zeros((self.data_size, 1), dtype=np.int8),
-                  np.zeros((self.data_size, 4, 84, 84), dtype=np.uint8),
-                  np.zeros((self.data_size, 1), dtype=np.bool)]
-
+        if args.resumeD1 and args.resumeD2:
+            # load saved D1 and D2
+            npz_tmp1 = np.load(args.resumeD1)
+            npz_tmp2 = np.load(args.resumeD2)
+            self.D = [npz_tmp1['D0'],
+                      npz_tmp1['D1'],
+                      npz_tmp1['D2'],
+                      npz_tmp2['D3'],
+                      npz_tmp2['D4']]
+            npz_tmp1.close()
+            npz_tmp2.close()
+            print "loaded stored D1 and D2"
+        else:
+            self.D = [np.zeros((self.data_size, 4, 84, 84), dtype=np.uint8),
+                      np.zeros(self.data_size, dtype=np.uint8),
+                      np.zeros((self.data_size, 1), dtype=np.int8),
+                      np.zeros((self.data_size, 4, 84, 84), dtype=np.uint8),
+                      np.zeros((self.data_size, 1), dtype=np.bool)]
+            print "cannot load stored D"
     def forward(self, state, action, Reward, state_dash, episode_end):
         num_of_batch = state.shape[0]
         s = Variable(state)
@@ -316,6 +328,8 @@ class ddqn_agent(Agent):  # RL-glue Process
 
         if inMessage.startswith("save model"):
             serializers.save_npz('resume.model', self.DDQN.model) # save current model
+            np.savez('stored_D012.npz', D0=self.DDQN.D[0], D1=self.DDQN.D[1], D2=self.DDQN.D[2])
+            np.savez('stored_D34.npz', D3=self.DDQN.D[3], D4=self.DDQN.D[4])
             return "message understood, model saved"
 
 if __name__ == "__main__":
