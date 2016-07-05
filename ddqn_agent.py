@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='DDQN')
 parser.add_argument('--resumemodel', '-r', default=None, help='file name of resuming model')
 parser.add_argument('--resumeD1', '-f', default=None, help='file name of resuming Ddata 1')
 parser.add_argument('--resumeD2', '-s', default=None, help='file name of resuming Ddata 2')
+parser.add_argument('--resumeTimeStep', '-t', default=None, help='Time step at resuming')
 args = parser.parse_args()
 
 class DDQN_class:
@@ -58,6 +59,7 @@ class DDQN_class:
             serializers.load_npz(args.resumemodel, self.model)
             print "load model from resume.model"
         
+
         self.model_target = copy.deepcopy(self.model)
 
         print "Initizlizing Optimizer"
@@ -83,7 +85,7 @@ class DDQN_class:
                       np.zeros((self.data_size, 1), dtype=np.int8),
                       np.zeros((self.data_size, 4, 84, 84), dtype=np.uint8),
                       np.zeros((self.data_size, 1), dtype=np.bool)]
-            print "cannot load stored D"
+            print "initialize D data"
     def forward(self, state, action, Reward, state_dash, episode_end):
         num_of_batch = state.shape[0]
         s = Variable(state)
@@ -214,7 +216,14 @@ class ddqn_agent(Agent):  # RL-glue Process
         self.lastAction = Action()
 
         self.time = 0
-        self.epsilon = 1.0  # Initial exploratoin rate
+        if args.resumeTimeStep:
+            self.epsilon = 1.0 - float(args.resumeTimeStep) / 10**6 # Resuming exploration rate
+            if self.epsilon < 0.05:
+                self.epsilon = 0.05
+            str_tmp = "resuming exploration rate is " + str(self.epsilon)
+            print str_tmp
+        else:
+            self.epsilon = 1.0  # Initial exploratoin rate
 
         # Pick a DDQN from DDQN_class
         self.DDQN = DDQN_class()  # default is for "Pong".
